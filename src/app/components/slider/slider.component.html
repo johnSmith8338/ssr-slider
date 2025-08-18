@@ -1,0 +1,39 @@
+<div class="slider-container" 
+	#sliderContainer 
+	(mouseenter)="pauseAutoSlide()" 
+	(mouseleave)="resumeAutoSlide()">
+
+	<div class="slider" 
+		#slider 
+		appTouchDrag 
+		[style.transform]="transform()" 
+		[style.transition]="transition()"
+		(slideChange)="onSlideChange($event)"
+		(dragMove)="onDragMove($event)">
+
+		@for (slide of slidesForRender(); track $index; let i = $index) {
+			<div class="slide" [class.active]="isRenderIndexActive(i)" [attr.data-index]="i">
+				@if (isSlideVisible(i)) {
+					<picture>
+						<source media="(max-width:1023px)" [srcset]="slide.mobileImg">
+						<source media="(min-width:1024px)" [srcset]="slide.desktopImg">
+						<img [src]="slide.desktopImg" [alt]="slide.title" (load)="onImageLoad(i)">
+					</picture>
+					<div class="slide-content-wrapper">
+						<div class="slide-content">
+							<h2>{{slide.title}}</h2>
+							<p class="slide-text">{{slide.text}}</p>
+						</div>
+					</div>
+				}
+			</div>
+		}@empty {
+			<p>There are no Slides to show</p>
+		}
+	</div>
+	<div class="slider-dots">
+		@for (slide of slides(); track $index; let i=$index) {
+			<button type="button" class="dot" [class.active]="i===activeIndex()" (click)="goToSlide(i)"></button>
+		}
+	</div>
+</div>

@@ -1,0 +1,28 @@
+{
+    "slides": [
+        {
+            "id": 1,
+            "desktopImg": "/assets/img/bg_1.jpg",
+            "mobileImg": "/assets/img/bg_1.jpg",
+            "title": "Slide 1",
+            "text": "This is the first slide description.",
+            "titleImgUrl": "/assets/img/bg_1.jpg"
+        },
+        {
+            "id": 2,
+            "desktopImg": "/assets/img/bg_2.png",
+            "mobileImg": "/assets/img/bg_2.png",
+            "title": "Slide 2",
+            "text": "This is the second slide description.",
+            "titleImgUrl": "/assets/img/bg_2.png"
+        },
+        {
+            "id": 3,
+            "desktopImg": "/assets/img/bg_3.jpg",
+            "mobileImg": "/assets/img/bg_3.jpg",
+            "title": "Slide 3",
+            "text": "This is the third slide description.",
+            "titleImgUrl": "/assets/img/bg_3.jpg"
+        }
+    ]
+}
