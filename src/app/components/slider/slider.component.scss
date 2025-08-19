@@ -22,6 +22,15 @@
   display: grid;
   grid-template-areas: "stack";
 
+  .slide img {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .slide img.loaded {
+    opacity: 1;
+  }
+
   .slide-content-wrapper {
     opacity: 0;
     transition: opacity 0.5s ease;
@@ -105,10 +114,11 @@ picture {
 .slider-dots {
   display: flex;
   gap: 16px;
+  justify-content: center;
   position: absolute;
   bottom: 10px;
-  left: 50%;
-  translate: 0 -50%;
+  left: 0;
+  right: 0;
 }
 
 .dot {
@@ -131,4 +141,13 @@ picture {
     width: 32px;
     border-radius: 10px;
   }
+}
+
+.preloader {
+  grid-area: stack;
+  color: #fff;
+  display: grid;
+  place-content: center;
+  z-index: 2;
+  background: #000;
 }

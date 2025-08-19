@@ -32,26 +32,27 @@ export class SliderComponent implements OnInit, AfterViewInit {
   @ViewChild('slider') slider!: ElementRef;
 
   @Input() autoSlideInterval: number = 5000;
+  @Input() transitionInterval: number = 500;
   @Input() isLoop: boolean = true;
   @Input() shuffle = 0;
 
   isServer: boolean;
   currentIndex = signal(0);
-  slides = signal<({ isVisible: import('@angular/core').WritableSignal<boolean> } & BrandingSlide)[]>([]);
+  slides = signal<({ isVisible: WritableSignal<boolean>; isLoaded: WritableSignal<boolean> } & BrandingSlide)[]>([]);
   dragDelta = signal(0);
   screenWidth = signal(1);
-  transition = signal('transform 0.5s ease');
+  transition = signal(`transform ${this.transitionInterval}ms ease`);
   pageVisible = signal(true);
   inViewport = signal(true);
 
   isInterective = computed(() => this.slides().length > 1);
 
-  slidesForRender = computed<({ isVisible: WritableSignal<boolean> } & BrandingSlide & { isClone?: boolean })[]>(() => {
+  slidesForRender = computed<({ isVisible: WritableSignal<boolean>; isLoaded: WritableSignal<boolean> } & BrandingSlide & { isClone?: boolean })[]>(() => {
     const arr = this.slides();
     if (arr.length === 0) return [];
 
-    const first = { ...arr[0], isClone: true, isVisible: signal(arr[0].isVisible()) };
-    const last = { ...arr[arr.length - 1], isClone: true, isVisible: signal(arr[arr.length - 1].isVisible()) };
+    const first = { ...arr[0], isClone: true, isVisible: signal(arr[0].isVisible()), isLoaded: signal(arr[0].isLoaded()) };
+    const last = { ...arr[arr.length - 1], isClone: true, isVisible: signal(arr[arr.length - 1].isVisible()), isLoaded: signal(arr[arr.length - 1].isLoaded()) };
 
     return [last, ...arr, first];
   });
@@ -137,7 +138,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
           this.slides.set([]);
           return;
         }
-        this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false) })));
+        this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false), isLoaded: signal(false) })));
 
         if (data.slides.length > 0) {
           let startIndex = 0;
@@ -160,7 +161,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const index = parseInt(entry.target.getAttribute('data-index') || '0');
-          this.slidesForRender()[index].isVisible.set(true);
+          this.slidesForRender()[index].isLoaded.set(true);
           observer.unobserve(entry.target);
         }
       });
@@ -193,6 +194,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (!slidesArray.length) return;
 
     slidesArray[renderIndex].isVisible.set(true);
+    slidesArray[renderIndex].isLoaded.set(true);
   }
 
   next() {
@@ -213,12 +215,12 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (this.currentIndex() > lastIndex) {
       this.transition.set('none');
       this.currentIndex.set(0);
-      requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
+      requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
     }
     if (this.currentIndex() < 0) {
       this.transition.set('none');
       this.currentIndex.set(lastIndex);
-      requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
+      requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
     }
   };
 
@@ -264,7 +266,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
   private jumpWithoutAnimation(target: number) {
     this.transition.set('none');
     this.currentIndex.set(target);
-    requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
+    requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
   }
 
   goToSlide(index: number) {
@@ -273,7 +275,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
     if (index === current) return;
 
-    this.transition.set('transform 0.5s ease');
+    this.transition.set(`transform ${this.transitionInterval}ms ease`);
 
     if (current === total - 1 && index === 0) {
       this.currentIndex.set(total);
