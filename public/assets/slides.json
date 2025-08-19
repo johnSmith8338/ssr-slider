@@ -23,6 +23,22 @@
             "title": "Slide 3",
             "text": "This is the third slide description.",
             "titleImgUrl": "/assets/img/bg_3.jpg"
+        },
+        {
+            "id": 4,
+            "desktopImg": "/assets/img/bg_1.jpg",
+            "mobileImg": "/assets/img/bg_1.jpg",
+            "title": "Slide 4",
+            "text": "This is the third slide description.",
+            "titleImgUrl": "/assets/img/bg_1.jpg"
+        },
+        {
+            "id": 5,
+            "desktopImg": "/assets/img/bg_3.jpg",
+            "mobileImg": "/assets/img/bg_3.jpg",
+            "title": "Slide 5",
+            "text": "This is the third slide description.",
+            "titleImgUrl": "/assets/img/bg_3.jpg"
         }
     ]
 }

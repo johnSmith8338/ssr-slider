@@ -31,9 +31,11 @@
 			<p>There are no Slides to show</p>
 		}
 	</div>
-	<div class="slider-dots">
-		@for (slide of slides(); track $index; let i=$index) {
-			<button type="button" class="dot" [class.active]="i===activeIndex()" (click)="goToSlide(i)"></button>
-		}
-	</div>
+	@if (slides().length>1) {
+		<div class="slider-dots">
+			@for (slide of slides(); track $index; let i=$index) {
+				<button type="button" class="dot" [class.active]="i===activeIndex()" (click)="goToSlide(i)"></button>
+			}
+		</div>
+	}
 </div>

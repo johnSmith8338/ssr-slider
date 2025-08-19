@@ -1,6 +1,6 @@
 import { isPlatformServer } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, Inject, inject, Input, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, Inject, inject, Input, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TouchDragDirective } from '../../directives/touch-drag.directive';
 import { animationFrameScheduler, fromEvent, interval, Subscription } from 'rxjs';
@@ -33,6 +33,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
   @Input() autoSlideInterval: number = 5000;
   @Input() isLoop: boolean = true;
+  @Input() shuffle = 0;
 
   isServer: boolean;
   currentIndex = signal(0);
@@ -40,6 +41,10 @@ export class SliderComponent implements OnInit, AfterViewInit {
   dragDelta = signal(0);
   screenWidth = signal(1);
   transition = signal('transform 0.5s ease');
+  pageVisible = signal(true);
+  inViewport = signal(true);
+
+  isInterective = computed(() => this.slides().length > 1);
 
   slidesForRender = computed<({ isVisible: WritableSignal<boolean> } & BrandingSlide & { isClone?: boolean })[]>(() => {
     const arr = this.slides();
@@ -83,24 +88,38 @@ export class SliderComponent implements OnInit, AfterViewInit {
         this.screenWidth.set(window.innerWidth);
       });
     }
+
+    effect(() => {
+      if (this.isServer) return;
+      const initRun = this.autoSlideInterval > 0 && this.isInterective() && this.pageVisible() && this.inViewport();
+      if (initRun) {
+        if (!this.autoSlideSub) this.startAutoSlide();
+      } else {
+        if (this.autoSlideSub) this.pauseAutoSlide();
+      }
+    });
   }
 
   ngOnInit(): void {
     this.loadSlides();
-    if (!this.isServer) this.startAutoSlide();
   }
 
   ngAfterViewInit(): void {
     if (!this.isServer) {
-      this.initLazyLoading();
-
       /**
-       * Stops slider when browser tab was switched to another tab
-       */
-      document.addEventListener('visibilitychange', () => {
-        document.hidden ? this.pauseAutoSlide() : this.resumeAutoSlide();
-      });
+       * Stops slider when browser was switched to another tab
+      */
+      const onVisible = () => this.pageVisible.set(!document.hidden);
+      document.addEventListener('visibilitychange', onVisible);
+      this.destroyRef.onDestroy(() => document.removeEventListener('visibilitychange', onVisible));
+
+      this.initLazyLoading();
+      this.observeViewport();
     };
+  }
+
+  private randInt(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   isRenderIndexActive(renderIndex: number) {
@@ -115,13 +134,16 @@ export class SliderComponent implements OnInit, AfterViewInit {
     ).subscribe({
       next: (data) => {
         if (!Array.isArray(data.slides)) {
-          console.error('Waiting for slide\'s array', data);
           this.slides.set([]);
           return;
         }
         this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false) })));
         if (data.slides.length > 0) {
           this.slides()[0].isVisible.set(true);
+          if (this.shuffle > 0 && data.slides.length > 1) {
+            const start = this.randInt(0, data.slides.length - 1);
+            this.currentIndex.set(start);
+          }
         }
       },
       error: (err) => {
@@ -147,7 +169,18 @@ export class SliderComponent implements OnInit, AfterViewInit {
       slide.setAttribute('data-index', index.toString());
       observer.observe(slide);
     });
+
+    this.destroyRef.onDestroy(() => observer.disconnect());
   }
+
+  private observeViewport() {
+    const el = this.sliderContainer.nativeElement;
+    const io = new IntersectionObserver(([entry]) => {
+      this.inViewport.set(entry.isIntersecting);
+    }, { threshold: 0.01 });
+    io.observe(el);
+    this.destroyRef.onDestroy(() => io.disconnect());
+  };
 
   isSlideVisible(renderIndex: number) {
     return Math.abs(renderIndex - (this.currentIndex() + 1)) <= 1;
@@ -160,17 +193,31 @@ export class SliderComponent implements OnInit, AfterViewInit {
     slidesArray[renderIndex].isVisible.set(true);
   }
 
-  next() {
-    if (this.slides().length === 0) return;
-    this.currentIndex.update(i => i + 1);
+  advance(step: number) {
+    if (!this.slides().length) return;
+    this.currentIndex.update(i => i + step);
     setTimeout(() => this.checkLoop(), 500);
   }
 
-  prev() {
-    if (this.slides().length === 0) return;
-    this.currentIndex.update(i => i - 1);
-    setTimeout(() => this.checkLoop(), 500);
+  next() {
+    this.advance(1);
   }
+
+  prev() {
+    this.advance(-1);
+  }
+
+  // next() {
+  //   if (this.slides().length === 0) return;
+  //   this.currentIndex.update(i => i + 1);
+  //   setTimeout(() => this.checkLoop(), 500);
+  // }
+
+  // prev() {
+  //   if (this.slides().length === 0) return;
+  //   this.currentIndex.update(i => i - 1);
+  //   setTimeout(() => this.checkLoop(), 500);
+  // }
 
   checkLoop() {
     const lastIndex = this.slides().length - 1;
@@ -192,16 +239,20 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   onDragMove(deltaX: number) {
+    if (!this.isInterective()) return;
     this.dragDelta.set(deltaX);
   };
 
   startAutoSlide() {
-    if (this.autoSlideInterval > 0) {
+    if (this.autoSlideInterval > 0 && this.isInterective()) {
       this.autoSlideSub?.unsubscribe();
 
       this.autoSlideSub = interval(this.autoSlideInterval, animationFrameScheduler).pipe(
         takeUntilDestroyed(this.destroyRef)
-      ).subscribe(() => this.next());
+      ).subscribe(() => {
+        const step = this.shuffle > 0 ? this.randInt(1, this.shuffle) : 1;
+        this.advance(step);
+      });
     }
   }
 
@@ -211,7 +262,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   resumeAutoSlide() {
-    if (!this.autoSlideSub && this.autoSlideInterval > 0) {
+    if (!this.autoSlideSub && this.autoSlideInterval > 0 && this.isInterective()) {
       this.startAutoSlide();
     }
   }
