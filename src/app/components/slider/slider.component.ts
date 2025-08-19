@@ -1,9 +1,9 @@
 import { isPlatformServer } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, DestroyRef, ElementRef, Inject, inject, Input, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, Inject, inject, Input, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TouchDragDirective } from '../../directives/touch-drag.directive';
-import { fromEvent } from 'rxjs';
+import { animationFrameScheduler, fromEvent, interval, Subscription } from 'rxjs';
 
 export interface BrandingSlide {
   id: number;
@@ -25,7 +25,6 @@ export interface BrandingSlide {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SliderComponent implements OnInit, AfterViewInit {
-  private cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
 
@@ -68,7 +67,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
     return index;
   });
 
-  private autoSlideTimer: any;
+  private autoSlideSub: Subscription | null = null;
 
   constructor(
     @Inject(PLATFORM_ID) platformId: Object,
@@ -82,7 +81,6 @@ export class SliderComponent implements OnInit, AfterViewInit {
         takeUntilDestroyed()
       ).subscribe(() => {
         this.screenWidth.set(window.innerWidth);
-        // this.cdr.markForCheck();
       });
     }
   }
@@ -93,7 +91,16 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    if (!this.isServer) this.initLazyLoading();
+    if (!this.isServer) {
+      this.initLazyLoading();
+
+      /**
+       * Stops slider when browser tab was switched to another tab
+       */
+      document.addEventListener('visibilitychange', () => {
+        document.hidden ? this.pauseAutoSlide() : this.resumeAutoSlide();
+      });
+    };
   }
 
   isRenderIndexActive(renderIndex: number) {
@@ -115,7 +122,6 @@ export class SliderComponent implements OnInit, AfterViewInit {
         this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false) })));
         if (data.slides.length > 0) {
           this.slides()[0].isVisible.set(true);
-          // this.cdr.markForCheck();
         }
       },
       error: (err) => {
@@ -131,7 +137,6 @@ export class SliderComponent implements OnInit, AfterViewInit {
         if (entry.isIntersecting) {
           const index = parseInt(entry.target.getAttribute('data-index') || '0');
           this.slidesForRender()[index].isVisible.set(true);
-          // this.cdr.markForCheck();
           observer.unobserve(entry.target);
         }
       });
@@ -153,68 +158,62 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (!slidesArray.length) return;
 
     slidesArray[renderIndex].isVisible.set(true);
-    // this.cdr.markForCheck();
   }
 
   next() {
     if (this.slides().length === 0) return;
     this.currentIndex.update(i => i + 1);
-    // this.cdr.markForCheck();
     setTimeout(() => this.checkLoop(), 500);
   }
 
   prev() {
     if (this.slides().length === 0) return;
     this.currentIndex.update(i => i - 1);
-    // this.cdr.markForCheck();
     setTimeout(() => this.checkLoop(), 500);
   }
 
   checkLoop() {
-    const LastIndex = this.slides().length - 1;
+    const lastIndex = this.slides().length - 1;
 
-    if (this.currentIndex() > LastIndex) {
+    if (this.currentIndex() > lastIndex) {
       this.transition.set('none');
       this.currentIndex.set(0);
-      // this.cdr.detectChanges();
       requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
     }
     if (this.currentIndex() < 0) {
       this.transition.set('none');
-      this.currentIndex.set(LastIndex);
-      // this.cdr.detectChanges();
+      this.currentIndex.set(lastIndex);
       requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
     }
   };
 
   onSlideChange(direction: 'next' | 'prev') {
     direction === 'next' ? this.next() : this.prev();
-    // this.cdr.markForCheck();
   }
 
   onDragMove(deltaX: number) {
     this.dragDelta.set(deltaX);
-    // this.cdr.markForCheck();
   };
 
   startAutoSlide() {
     if (this.autoSlideInterval > 0) {
-      this.autoSlideTimer = setInterval(() => {
-        this.next();
-        // this.cdr.markForCheck();
-      }, this.autoSlideInterval);
+      this.autoSlideSub?.unsubscribe();
+
+      this.autoSlideSub = interval(this.autoSlideInterval, animationFrameScheduler).pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(() => this.next());
     }
   }
 
   pauseAutoSlide() {
-    if (this.autoSlideTimer) {
-      clearInterval(this.autoSlideTimer);
-      this.autoSlideTimer = null;
-    }
+    this.autoSlideSub?.unsubscribe();
+    this.autoSlideSub = null;
   }
 
   resumeAutoSlide() {
-    this.startAutoSlide();
+    if (!this.autoSlideSub && this.autoSlideInterval > 0) {
+      this.startAutoSlide();
+    }
   }
 
   private waitTransitionEnd(callbeck: () => void) {
@@ -229,7 +228,6 @@ export class SliderComponent implements OnInit, AfterViewInit {
   private jumpWithoutAnimation(target: number) {
     this.transition.set('none');
     this.currentIndex.set(target);
-    // this.cdr.detectChanges();
     requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
   }
 
