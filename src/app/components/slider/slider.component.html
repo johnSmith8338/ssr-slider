@@ -17,7 +17,7 @@
 					<picture>
 						<source media="(max-width:1023px)" [srcset]="slide.mobileImg">
 						<source media="(min-width:1024px)" [srcset]="slide.desktopImg">
-						<img [src]="slide.desktopImg" [alt]="slide.title" (load)="onImageLoad(i)">
+						<img [src]="slide.desktopImg" [alt]="slide.title" (load)="onImageLoad(i)" loading="lazy">
 					</picture>
 					<div class="slide-content-wrapper">
 						<div class="slide-content">
@@ -31,7 +31,7 @@
 			<p>There are no Slides to show</p>
 		}
 	</div>
-	@if (slides().length>1) {
+	@if (isInterective()) {
 		<div class="slider-dots">
 			@for (slide of slides(); track $index; let i=$index) {
 				<button type="button" class="dot" [class.active]="i===activeIndex()" (click)="goToSlide(i)"></button>

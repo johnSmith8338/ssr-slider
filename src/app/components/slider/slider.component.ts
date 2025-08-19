@@ -138,12 +138,14 @@ export class SliderComponent implements OnInit, AfterViewInit {
           return;
         }
         this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false) })));
+
         if (data.slides.length > 0) {
-          this.slides()[0].isVisible.set(true);
-          if (this.shuffle > 0 && data.slides.length > 1) {
-            const start = this.randInt(0, data.slides.length - 1);
-            this.currentIndex.set(start);
+          let startIndex = 0;
+          if (this.shuffle >= 0 && this.shuffle < data.slides.length) {
+            startIndex = this.shuffle;
           }
+          this.currentIndex.set(startIndex);
+          this.slides()[startIndex].isVisible.set(true);
         }
       },
       error: (err) => {
@@ -193,31 +195,17 @@ export class SliderComponent implements OnInit, AfterViewInit {
     slidesArray[renderIndex].isVisible.set(true);
   }
 
-  advance(step: number) {
-    if (!this.slides().length) return;
-    this.currentIndex.update(i => i + step);
-    setTimeout(() => this.checkLoop(), 500);
-  }
-
   next() {
-    this.advance(1);
+    if (this.slides().length === 0) return;
+    this.currentIndex.update(i => i + 1);
+    this.waitTransitionEnd(() => this.checkLoop());
   }
 
   prev() {
-    this.advance(-1);
+    if (this.slides().length === 0) return;
+    this.currentIndex.update(i => i - 1);
+    this.waitTransitionEnd(() => this.checkLoop());
   }
-
-  // next() {
-  //   if (this.slides().length === 0) return;
-  //   this.currentIndex.update(i => i + 1);
-  //   setTimeout(() => this.checkLoop(), 500);
-  // }
-
-  // prev() {
-  //   if (this.slides().length === 0) return;
-  //   this.currentIndex.update(i => i - 1);
-  //   setTimeout(() => this.checkLoop(), 500);
-  // }
 
   checkLoop() {
     const lastIndex = this.slides().length - 1;
@@ -249,10 +237,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
       this.autoSlideSub = interval(this.autoSlideInterval, animationFrameScheduler).pipe(
         takeUntilDestroyed(this.destroyRef)
-      ).subscribe(() => {
-        const step = this.shuffle > 0 ? this.randInt(1, this.shuffle) : 1;
-        this.advance(step);
-      });
+      ).subscribe(() => this.next());
     }
   }
 
