@@ -82,7 +82,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
         takeUntilDestroyed()
       ).subscribe(() => {
         this.screenWidth.set(window.innerWidth);
-        this.cdr.markForCheck();
+        // this.cdr.markForCheck();
       });
     }
   }
@@ -115,7 +115,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
         this.slides.set(data.slides.map(slide => ({ ...slide, isVisible: signal(false) })));
         if (data.slides.length > 0) {
           this.slides()[0].isVisible.set(true);
-          this.cdr.markForCheck();
+          // this.cdr.markForCheck();
         }
       },
       error: (err) => {
@@ -131,7 +131,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
         if (entry.isIntersecting) {
           const index = parseInt(entry.target.getAttribute('data-index') || '0');
           this.slidesForRender()[index].isVisible.set(true);
-          this.cdr.markForCheck();
+          // this.cdr.markForCheck();
           observer.unobserve(entry.target);
         }
       });
@@ -153,20 +153,20 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (!slidesArray.length) return;
 
     slidesArray[renderIndex].isVisible.set(true);
-    this.cdr.markForCheck();
+    // this.cdr.markForCheck();
   }
 
   next() {
     if (this.slides().length === 0) return;
     this.currentIndex.update(i => i + 1);
-    this.cdr.markForCheck();
+    // this.cdr.markForCheck();
     setTimeout(() => this.checkLoop(), 500);
   }
 
   prev() {
     if (this.slides().length === 0) return;
     this.currentIndex.update(i => i - 1);
-    this.cdr.markForCheck();
+    // this.cdr.markForCheck();
     setTimeout(() => this.checkLoop(), 500);
   }
 
@@ -176,32 +176,32 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (this.currentIndex() > LastIndex) {
       this.transition.set('none');
       this.currentIndex.set(0);
-      this.cdr.detectChanges();
+      // this.cdr.detectChanges();
       requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
     }
     if (this.currentIndex() < 0) {
       this.transition.set('none');
       this.currentIndex.set(LastIndex);
-      this.cdr.detectChanges();
+      // this.cdr.detectChanges();
       requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
     }
   };
 
   onSlideChange(direction: 'next' | 'prev') {
     direction === 'next' ? this.next() : this.prev();
-    this.cdr.markForCheck();
+    // this.cdr.markForCheck();
   }
 
   onDragMove(deltaX: number) {
     this.dragDelta.set(deltaX);
-    this.cdr.markForCheck();
+    // this.cdr.markForCheck();
   };
 
   startAutoSlide() {
     if (this.autoSlideInterval > 0) {
       this.autoSlideTimer = setInterval(() => {
         this.next();
-        this.cdr.markForCheck();
+        // this.cdr.markForCheck();
       }, this.autoSlideInterval);
     }
   }
@@ -229,7 +229,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
   private jumpWithoutAnimation(target: number) {
     this.transition.set('none');
     this.currentIndex.set(target);
-    this.cdr.detectChanges();
+    // this.cdr.detectChanges();
     requestAnimationFrame(() => this.transition.set('transform 0.5s ease'));
   }
 
