@@ -1,9 +1,10 @@
 import { isPlatformServer } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, Inject, inject, Input, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, Inject, inject, Input, NgZone, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TouchDragDirective } from '../../directives/touch-drag.directive';
 import { animationFrameScheduler, fromEvent, interval, Subscription } from 'rxjs';
+import { Router } from '@angular/router';
 
 export interface BrandingSlide {
   id: number;
@@ -27,6 +28,8 @@ export interface BrandingSlide {
 export class SliderComponent implements OnInit, AfterViewInit {
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
+  private ngZone = inject(NgZone);
 
   @ViewChild('sliderContainer') sliderContainer!: ElementRef;
   @ViewChild('slider') slider!: ElementRef;
