@@ -12,10 +12,13 @@ export class TouchDragDirective {
   private currentX = 0;
   private isDragging = false;
   private threshold = 50; // how many px we should drag to switch slide
+  private clickThreshold = 5;
   private rafId: number | null = null;
 
   @Output() dragMove = new EventEmitter<number>();
+  @Output() dragEnd = new EventEmitter<{ deltaX: number, shouldSwitch: boolean }>();
   @Output() slideChange = new EventEmitter<'next' | 'prev'>();
+  @Output() slideClick = new EventEmitter<void>();
 
   private getClientX(event: MouseEvent | TouchEvent): number {
     return event instanceof MouseEvent ? event.clientX : event.touches[0].clientX;
@@ -27,6 +30,7 @@ export class TouchDragDirective {
     event.preventDefault();
     this.isDragging = true;
     this.startX = this.getClientX(event);
+    this.currentX = this.startX;
 
     this.ngZone.runOutsideAngular(() => {
       document.addEventListener('mousemove', this.onMove, { passive: false });
@@ -56,46 +60,21 @@ export class TouchDragDirective {
     this.isDragging = false;
 
     const deltaX = this.currentX - this.startX;
+    const shouldSwitch = Math.abs(deltaX) > this.threshold;
 
-    if (Math.abs(deltaX) > this.threshold) {
+    if (shouldSwitch) {
       this.slideChange.emit(deltaX > 0 ? 'prev' : 'next');
+    } else {
+      if (Math.abs(deltaX) < this.clickThreshold) {
+        this.slideClick.emit();
+      }
     }
-    this.dragMove.emit(0);
+
+    this.dragEnd.emit({ deltaX, shouldSwitch });
 
     document.removeEventListener('mousemove', this.onMove);
     document.removeEventListener('touchmove', this.onMove);
     document.removeEventListener('mouseup', this.onEnd);
     document.removeEventListener('touchend', this.onEnd);
   };
-
-  // @HostListener('mousedown', ['$event'])
-  // @HostListener('touchstart', ['$event'])
-  // onStart(event: MouseEvent | TouchEvent) {
-  //   event.preventDefault();
-  //   this.isDragging = true;
-  //   this.startX = this.getClientX(event);
-  // }
-
-  // @HostListener('mousemove', ['$event'])
-  // @HostListener('touchmove', ['$event'])
-  // onMove(event: MouseEvent | TouchEvent) {
-  //   event.preventDefault();
-  //   if (!this.isDragging) return;
-  //   this.currentX = this.getClientX(event);
-  //   const deltaX = this.currentX - this.startX;
-  //   this.dragMove.emit(deltaX);
-  // }
-
-  // @HostListener('mouseup')
-  // @HostListener('touchend')
-  // onEnd() {
-  //   if (!this.isDragging) return;
-  //   this.isDragging = false;
-  //   const deltaX = this.currentX - this.startX;
-
-  //   if (Math.abs(deltaX) > this.threshold) {
-  //     this.slideChange.emit(deltaX > 0 ? 'prev' : 'next')
-  //   }
-  //   this.dragMove.emit(0);
-  // }
 }

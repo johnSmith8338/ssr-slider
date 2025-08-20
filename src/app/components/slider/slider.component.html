@@ -9,7 +9,9 @@
 		[style.transform]="transform()" 
 		[style.transition]="transition()"
 		(slideChange)="onSlideChange($event)"
-		(dragMove)="onDragMove($event)">
+		(dragMove)="onDragMove($event)"
+		(dragEnd)="onDragEnd($event)"
+		(slideClick)="onSlideClick()">
 
 		@for (slide of slidesForRender(); track $index; let i = $index) {
 			<div class="slide" [class.active]="isRenderIndexActive(i)" [attr.data-index]="i">
@@ -18,7 +20,7 @@
 						<p>Loading...</p>
 					</div>
 				}
-				@if (true) {
+				@if (isSlideVisible(i)) {
 					<picture>
 						<source media="(max-width:1023px)" [srcset]="slide.mobileImg">
 						<source media="(min-width:1024px)" [srcset]="slide.desktopImg">
@@ -32,6 +34,10 @@
 							<h2>{{slide.title}}</h2>
 							<p class="slide-text">{{slide.text}}</p>
 						</div>
+					</div>
+				}@else {
+					<div class="preloader">
+						<p>Loading...</p>
 					</div>
 				}
 			</div>

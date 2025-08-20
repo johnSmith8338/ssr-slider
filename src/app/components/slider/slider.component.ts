@@ -34,12 +34,13 @@ export class SliderComponent implements OnInit, AfterViewInit {
   @Input() autoSlideInterval: number = 5000;
   @Input() transitionInterval: number = 500;
   @Input() isLoop: boolean = true;
-  @Input() shuffle = 0;
+  @Input() randomInit = false;
 
   isServer: boolean;
   currentIndex = signal(0);
   slides = signal<({ isVisible: WritableSignal<boolean>; isLoaded: WritableSignal<boolean> } & BrandingSlide)[]>([]);
   dragDelta = signal(0);
+  isAnimating = signal(false);
   screenWidth = signal(1);
   transition = signal(`transform ${this.transitionInterval}ms ease`);
   pageVisible = signal(true);
@@ -114,13 +115,13 @@ export class SliderComponent implements OnInit, AfterViewInit {
       document.addEventListener('visibilitychange', onVisible);
       this.destroyRef.onDestroy(() => document.removeEventListener('visibilitychange', onVisible));
 
+      requestAnimationFrame(() => {
+        this.transition.set(`transform ${this.transitionInterval}ms ease`);
+      });
+
       this.initLazyLoading();
       this.observeViewport();
     };
-  }
-
-  private randInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   isRenderIndexActive(renderIndex: number) {
@@ -142,9 +143,10 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
         if (data.slides.length > 0) {
           let startIndex = 0;
-          if (this.shuffle >= 0 && this.shuffle < data.slides.length) {
-            startIndex = this.shuffle;
+          if (this.randomInit && data.slides.length > 1) {
+            startIndex = Math.floor(Math.random() * data.slides.length);
           }
+          // this.transition.set('none');
           this.currentIndex.set(startIndex);
           this.slides()[startIndex].isVisible.set(true);
         }
@@ -199,14 +201,22 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
   next() {
     if (this.slides().length === 0) return;
+    this.isAnimating.set(true);
     this.currentIndex.update(i => i + 1);
-    this.waitTransitionEnd(() => this.checkLoop());
+    this.waitTransitionEnd(() => {
+      this.checkLoop();
+      this.isAnimating.set(false);
+    });
   }
 
   prev() {
     if (this.slides().length === 0) return;
+    this.isAnimating.set(true);
     this.currentIndex.update(i => i - 1);
-    this.waitTransitionEnd(() => this.checkLoop());
+    this.waitTransitionEnd(() => {
+      this.checkLoop();
+      this.isAnimating.set(false);
+    });
   }
 
   checkLoop() {
@@ -229,9 +239,21 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   onDragMove(deltaX: number) {
-    if (!this.isInterective()) return;
+    if (!this.isInterective() || this.isAnimating()) return;
     this.dragDelta.set(deltaX);
   };
+
+  onDragEnd(event: { deltaX: number; shouldSwitch: boolean }) {
+    if (!event.shouldSwitch) {
+      this.dragDelta.set(0);
+    } else {
+      this.dragDelta.set(0);
+    }
+  }
+
+  onSlideClick() {
+    console.log('slide clicked');
+  }
 
   startAutoSlide() {
     if (this.autoSlideInterval > 0 && this.isInterective()) {
@@ -266,6 +288,10 @@ export class SliderComponent implements OnInit, AfterViewInit {
   private jumpWithoutAnimation(target: number) {
     this.transition.set('none');
     this.currentIndex.set(target);
+    if (this.isServer || !this.slider?.nativeElement) {
+      this.transition.set(`transform ${this.transitionInterval}ms ease`);
+      return;
+    }
     requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
   }
 
@@ -275,18 +301,27 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
     if (index === current) return;
 
+    this.isAnimating.set(true);
+
     this.transition.set(`transform ${this.transitionInterval}ms ease`);
 
     if (current === total - 1 && index === 0) {
       this.currentIndex.set(total);
-      this.waitTransitionEnd(() => this.jumpWithoutAnimation(0));
+      this.waitTransitionEnd(() => {
+        this.jumpWithoutAnimation(0);
+        this.isAnimating.set(false);
+      });
       return;
     }
     if (current === 0 && index === total - 1) {
       this.currentIndex.set(-1);
-      this.waitTransitionEnd(() => this.jumpWithoutAnimation(total - 1));
+      this.waitTransitionEnd(() => {
+        this.jumpWithoutAnimation(total - 1);
+        this.isAnimating.set(false);
+      });
       return;
     }
     this.currentIndex.set(index);
+    this.waitTransitionEnd(() => this.isAnimating.set(false));
   }
 }
