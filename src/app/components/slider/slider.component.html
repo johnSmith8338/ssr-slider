@@ -14,7 +14,7 @@
 		(slideClick)="onSlideClick()">
 
 		@for (slide of slidesForRender(); track $index; let i = $index) {
-			<div class="slide" [class.active]="isRenderIndexActive(i)" [attr.data-index]="i">
+			<div class="slide" [class.active]="isRenderIndexActive(i)" [class.clone]="slide.isClone" [attr.data-index]="i">
 				@if (!slide.isLoaded()) {
 					<div class="preloader">
 						<p>Loading...</p>

@@ -125,8 +125,12 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   isRenderIndexActive(renderIndex: number) {
-    const slidesCount = this.slides().length;
-    if (!slidesCount) return false;
+    const slides = this.slidesForRender();
+    if (!slides.length) return false;
+
+    const slide = slides[renderIndex];
+    if (slide.isClone) return false;
+
     return renderIndex === this.currentIndex() + 1;
   };
 
