@@ -225,40 +225,35 @@ export class SliderComponent implements OnInit, AfterViewInit {
     slidesArray[renderIndex].isLoaded.set(true);
   }
 
-  next() {
+  safeMoveTo(targetIndex: number) {
     if (this.slides().length === 0) return;
+
+    const lastIndex = this.slides().length - 1;
     this.isAnimating.set(true);
-    this.currentIndex.update(i => i + 1);
+
+    this.currentIndex.set(targetIndex);
+
     this.waitTransitionEnd(() => {
-      this.checkLoop();
+      if (targetIndex > lastIndex) {
+        this.jumpWithoutAnimation(0);
+      } else if (targetIndex < 0) {
+        this.jumpWithoutAnimation(lastIndex);
+      }
       this.isAnimating.set(false);
     });
+  }
+
+  next() {
+    this.safeMoveTo(this.currentIndex() + 1);
   }
 
   prev() {
-    if (this.slides().length === 0) return;
-    this.isAnimating.set(true);
-    this.currentIndex.update(i => i - 1);
-    this.waitTransitionEnd(() => {
-      this.checkLoop();
-      this.isAnimating.set(false);
-    });
+    this.safeMoveTo(this.currentIndex() - 1);
   }
 
-  checkLoop() {
-    const lastIndex = this.slides().length - 1;
-
-    if (this.currentIndex() > lastIndex) {
-      this.transition.set('none');
-      this.currentIndex.set(0);
-      requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
-    }
-    if (this.currentIndex() < 0) {
-      this.transition.set('none');
-      this.currentIndex.set(lastIndex);
-      requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
-    }
-  };
+  goToSlide(index: number) {
+    this.safeMoveTo(index);
+  }
 
   onSlideChange(direction: 'next' | 'prev') {
     direction === 'next' ? this.next() : this.prev();
@@ -322,7 +317,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   private waitTransitionEnd(callbeck: () => void) {
-    const el = this.sliderContainer.nativeElement;
+    const el = this.slider.nativeElement;
     const handler = () => {
       el.removeEventListener('transitionend', handler);
       callbeck();
@@ -338,35 +333,5 @@ export class SliderComponent implements OnInit, AfterViewInit {
       return;
     }
     requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
-  }
-
-  goToSlide(index: number) {
-    const total = this.slides().length;
-    const current = this.activeIndex();
-
-    if (index === current) return;
-
-    this.isAnimating.set(true);
-
-    this.transition.set(`transform ${this.transitionInterval}ms ease`);
-
-    if (current === total - 1 && index === 0) {
-      this.currentIndex.set(total);
-      this.waitTransitionEnd(() => {
-        this.jumpWithoutAnimation(0);
-        this.isAnimating.set(false);
-      });
-      return;
-    }
-    if (current === 0 && index === total - 1) {
-      this.currentIndex.set(-1);
-      this.waitTransitionEnd(() => {
-        this.jumpWithoutAnimation(total - 1);
-        this.isAnimating.set(false);
-      });
-      return;
-    }
-    this.currentIndex.set(index);
-    this.waitTransitionEnd(() => this.isAnimating.set(false));
   }
 }
