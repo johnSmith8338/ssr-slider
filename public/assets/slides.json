@@ -5,8 +5,20 @@
             "desktopImg": "/assets/img/bg_1.jpg",
             "mobileImg": "/assets/img/bg_1.jpg",
             "title": "Slide 1",
-            "text": "This is the first slide description.",
-            "titleImgUrl": "/assets/img/bg_1.jpg"
+            "text": "This is the first slide description. With two buttons",
+            "contentImg": "/assets/img/bg_1.jpg",
+            "cta": [
+                {
+                    "label": "More info",
+                    "link": "/",
+                    "type": "internal"
+                },
+                {
+                    "label": "Somewhere link",
+                    "link": "https://www.google.com/",
+                    "type": "external"
+                }
+            ]
         },
         {
             "id": 2,
@@ -14,7 +26,14 @@
             "mobileImg": "/assets/img/bg_2.png",
             "title": "Slide 2",
             "text": "This is the second slide description.",
-            "titleImgUrl": "/assets/img/bg_2.png"
+            "contentImg": "/assets/img/bg_2.png",
+            "cta": [
+                {
+                    "label": "Google",
+                    "link": "https://www.google.com/",
+                    "type": "external"
+                }
+            ]
         },
         {
             "id": 3,
@@ -22,7 +41,7 @@
             "mobileImg": "/assets/img/bg_3.jpg",
             "title": "Slide 3",
             "text": "This is the third slide description.",
-            "titleImgUrl": "/assets/img/bg_3.jpg"
+            "contentImg": "/assets/img/bg_3.jpg"
         },
         {
             "id": 4,
@@ -30,7 +49,7 @@
             "mobileImg": "/assets/img/bg_1.jpg",
             "title": "Slide 4",
             "text": "This is the third slide description.",
-            "titleImgUrl": "/assets/img/bg_1.jpg"
+            "contentImg": "/assets/img/bg_1.jpg"
         },
         {
             "id": 5,
@@ -38,7 +57,7 @@
             "mobileImg": "/assets/img/bg_3.jpg",
             "title": "Slide 5",
             "text": "This is the third slide description.",
-            "titleImgUrl": "/assets/img/bg_3.jpg"
+            "contentImg": "/assets/img/bg_3.jpg"
         }
     ]
 }

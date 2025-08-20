@@ -1,6 +1,6 @@
 import { isPlatformServer } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, Inject, inject, Input, NgZone, OnInit, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, EventEmitter, Inject, inject, Input, NgZone, OnInit, Output, PLATFORM_ID, signal, ViewChild, WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TouchDragDirective } from '../../directives/touch-drag.directive';
 import { animationFrameScheduler, fromEvent, interval, Subscription } from 'rxjs';
@@ -12,7 +12,13 @@ export interface BrandingSlide {
   mobileImg: string;
   title: string;
   text: string;
-  titleImgUrl: string;
+  contentImg: string;
+  cta?: Cta[];
+}
+export interface Cta {
+  label: string;
+  link?: string;
+  type?: 'internal' | 'external';
 }
 
 @Component({
@@ -38,6 +44,9 @@ export class SliderComponent implements OnInit, AfterViewInit {
   @Input() transitionInterval: number = 500;
   @Input() isLoop: boolean = true;
   @Input() randomInit = false;
+  @Input() trackClicks = false;
+  @Input() showExtras = true;
+  @Output() trackClick = new EventEmitter<{ slide: BrandingSlide; slideIndex: number; cta?: Cta; ctaIndex?: number }>();
 
   isServer: boolean;
   currentIndex = signal(0);
@@ -76,6 +85,8 @@ export class SliderComponent implements OnInit, AfterViewInit {
     if (index > last) return 0;
     return index;
   });
+
+  isWideScreen = computed(() => this.screenWidth() >= 1024);
 
   private autoSlideSub: Subscription | null = null;
 
@@ -136,6 +147,14 @@ export class SliderComponent implements OnInit, AfterViewInit {
 
     return renderIndex === this.currentIndex() + 1;
   };
+
+  getRealSlideIndex(rendererIndex: number): number {
+    const length = this.slides().length;
+    if (!length) return 0;
+    if (rendererIndex === 0) return length - 1;
+    if (rendererIndex === length + 1) return 0;
+    return rendererIndex - 1;
+  }
 
   loadSlides() {
     this.http.get<{ slides: BrandingSlide[] }>('/assets/slides.json').pipe(
@@ -257,6 +276,25 @@ export class SliderComponent implements OnInit, AfterViewInit {
       this.dragDelta.set(0);
     }
   }
+
+  onCtaClick(event: MouseEvent, slide: BrandingSlide, cta: Cta, slideIndex: number, ctaIndex: number) {
+    event.stopPropagation();
+
+    if (this.trackClicks) {
+      this.trackClick.emit({ slide, slideIndex, cta, ctaIndex });
+    }
+
+    if (cta.link) {
+      const isExternal = /^https?:\/\//.test(cta.link) || cta.type === 'external';
+      if (isExternal) {
+        window.open(cta.link, '_blank');
+      } else {
+        this.ngZone.run(() => {
+          this.router.navigate([cta.link]);
+        });
+      }
+    }
+  };
 
   onSlideClick() {
     console.log('slide clicked');

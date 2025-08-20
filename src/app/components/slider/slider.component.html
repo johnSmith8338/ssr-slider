@@ -6,6 +6,7 @@
 	<div class="slider" 
 		#slider 
 		appTouchDrag 
+		[isWideScreen]="isWideScreen()"
 		[style.transform]="transform()" 
 		[style.transition]="transition()"
 		(slideChange)="onSlideChange($event)"
@@ -29,12 +30,27 @@
 							[class.loaded]="slide.isLoaded()"
 						>
 					</picture>
-					<div class="slide-content-wrapper">
-						<div class="slide-content">
-							<h2>{{slide.title}}</h2>
-							<p class="slide-text">{{slide.text}}</p>
+					@if (isWideScreen()) {
+						<div class="slide-content-wrapper">
+							<div class="slide-content">
+								<h2>{{slide.title}}</h2>
+								<p class="slide-text">{{slide.text}}</p>
+								@if (slide.cta?.length) {
+									<div class="slide-cta">
+										@for (cta of slide.cta; track $index; let j=$index) {
+											<button
+												type="button"
+												data-cta="true"
+												(click)="onCtaClick($event,slide,cta,getRealSlideIndex(i),j)"
+											>
+												{{cta.label}}
+											</button>
+										}
+									</div>
+								}
+							</div>
 						</div>
-					</div>
+					}
 				}@else {
 					<div class="preloader">
 						<p>Loading...</p>

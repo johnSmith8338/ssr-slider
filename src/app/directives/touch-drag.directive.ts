@@ -1,4 +1,4 @@
-import { Directive, ElementRef, EventEmitter, HostListener, inject, NgZone, Output } from '@angular/core';
+import { Directive, ElementRef, EventEmitter, HostListener, inject, Input, NgZone, Output } from '@angular/core';
 
 @Directive({
   selector: '[appTouchDrag]',
@@ -14,7 +14,9 @@ export class TouchDragDirective {
   private threshold = 50; // how many px we should drag to switch slide
   private clickThreshold = 5;
   private rafId: number | null = null;
+  private startTarget: EventTarget | null = null;
 
+  @Input() isWideScreen = false;
   @Output() dragMove = new EventEmitter<number>();
   @Output() dragEnd = new EventEmitter<{ deltaX: number, shouldSwitch: boolean }>();
   @Output() slideChange = new EventEmitter<'next' | 'prev'>();
@@ -24,6 +26,18 @@ export class TouchDragDirective {
     return event instanceof MouseEvent ? event.clientX : event.touches[0].clientX;
   }
 
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    if (!target) return false;
+    let elem: Element | null = (target instanceof Element) ? target : (target as Node).parentElement;
+    while (elem) {
+      try {
+        if (elem.matches('button, a, [data-cta], .cta, input, textarea, select, [role="button"], label')) return true;
+      } catch (e) { }
+      elem = elem.parentElement;
+    }
+    return false;
+  }
+
   @HostListener('mousedown', ['$event'])
   @HostListener('touchstart', ['$event'])
   onStart(event: MouseEvent | TouchEvent) {
@@ -31,6 +45,7 @@ export class TouchDragDirective {
     this.isDragging = true;
     this.startX = this.getClientX(event);
     this.currentX = this.startX;
+    this.startTarget = (event as Event).target ?? null;
 
     this.ngZone.runOutsideAngular(() => {
       document.addEventListener('mousemove', this.onMove, { passive: false });
@@ -65,12 +80,15 @@ export class TouchDragDirective {
     if (shouldSwitch) {
       this.slideChange.emit(deltaX > 0 ? 'prev' : 'next');
     } else {
-      if (Math.abs(deltaX) < this.clickThreshold) {
+      const interactive = this.isInteractiveTarget(this.startTarget);
+      if (!this.isWideScreen && !interactive && Math.abs(deltaX) < this.clickThreshold) {
         this.slideClick.emit();
       }
     }
 
     this.dragEnd.emit({ deltaX, shouldSwitch });
+
+    this.startTarget = null;
 
     document.removeEventListener('mousemove', this.onMove);
     document.removeEventListener('touchmove', this.onMove);
