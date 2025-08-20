@@ -130,7 +130,7 @@ export class SliderComponent implements OnInit, AfterViewInit {
       this.destroyRef.onDestroy(() => document.removeEventListener('visibilitychange', onVisible));
 
       requestAnimationFrame(() => {
-        this.transition.set(`transform ${this.transitionInterval}ms ease`);
+        this.enableTransition();
       });
 
       this.initLazyLoading();
@@ -172,7 +172,6 @@ export class SliderComponent implements OnInit, AfterViewInit {
           if (this.randomInit && data.slides.length > 1) {
             startIndex = Math.floor(Math.random() * data.slides.length);
           }
-          // this.transition.set('none');
           this.currentIndex.set(startIndex);
           this.slides()[startIndex].isVisible.set(true);
         }
@@ -316,6 +315,14 @@ export class SliderComponent implements OnInit, AfterViewInit {
     }
   }
 
+  enableTransition() {
+    this.transition.set(`transform ${this.transitionInterval}ms ease`);
+  }
+
+  disableTransition() {
+    this.transition.set('none');
+  }
+
   private waitTransitionEnd(callbeck: () => void) {
     const el = this.slider.nativeElement;
     const handler = () => {
@@ -326,12 +333,12 @@ export class SliderComponent implements OnInit, AfterViewInit {
   }
 
   private jumpWithoutAnimation(target: number) {
-    this.transition.set('none');
+    this.disableTransition();
     this.currentIndex.set(target);
     if (this.isServer || !this.slider?.nativeElement) {
-      this.transition.set(`transform ${this.transitionInterval}ms ease`);
+      this.enableTransition();
       return;
     }
-    requestAnimationFrame(() => this.transition.set(`transform ${this.transitionInterval}ms ease`));
+    requestAnimationFrame(() => this.enableTransition());
   }
 }
